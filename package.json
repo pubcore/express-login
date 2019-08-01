@@ -1,33 +1,17 @@
 {
-				"name": "@pubcore/express-login",
-				"description": "express middleware to perform http based logins",
-				"author": "pubcore",
-				"scripts": {
-								"test": "nyc --reporter=text mocha --inspect --require @babel/register --require source-map-support --recursive",
-								"build": "babel src --out-dir js",
-								"prepare": "npm run build",
-								"watch": "babel --watch src --out-dir js",
-								"coverage": "nyc report --reporter=text-lcov"
-				},
-				"main": "js/index.js",
-				"license": "MIT",
-				"babel": {
-								"presets": [
-												"@babel/preset-env"
-								],
-								"plugins": [
-												"@babel/plugin-proposal-object-rest-spread"
-								]
-				},
-				"devDependencies": {
-								"@babel/cli": "^7.5.5",
-								"@babel/core": "^7.5.5",
-								"@babel/plugin-proposal-object-rest-spread": "^7.5.5",
-								"@babel/preset-env": "^7.5.5",
-								"@babel/register": "^7.5.5",
-								"eslint": "^6.1.0",
-								"eslint-plugin-mocha": "^6.0.0",
-								"mocha": "^6.2.0",
-								"nyc": "^14.1.1"
-				}
+	"name": "@pubcore/express-login",
+	"description": "express middleware to perform http based logins",
+	"author": "pubcore",
+	"scripts": {
+		"test": "nyc --reporter=text mocha --inspect --recursive",
+		"coverage": "nyc report --reporter=text-lcov"
+	},
+	"main": "js/index.js",
+	"license": "MIT",
+	"devDependencies": {
+		"eslint": "^6.1.0",
+		"eslint-plugin-mocha": "^6.0.0",
+		"mocha": "^6.2.0",
+		"nyc": "^14.1.1"
+	}
 }
