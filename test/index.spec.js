@@ -17,6 +17,8 @@ chai.use(chaiHttp)
 const app = express(),
 	app2 = express(),
 	app3 = express(),
+	app4 = express(),
+	app5 = express(),
 	options = {
 		publicDeactivatedUri:'/login/deactivated',
 		changePasswordUri:'/login/pwchange',
@@ -25,7 +27,6 @@ const app = express(),
 		maxLoginAttempts:2,
 		maxLoginAttemptsTimeWindow:50,//[msec]
 		minTimeBetweenUpdates:1000,//[msec]
-		methods: {jwt:{}, basicAuth:{}, form:{}},
 	},
 	table = 'user',
 	knex = createTestDb({table, rows:defaultMap([{}, {
@@ -61,6 +62,14 @@ app3.use(express.json())
 app3.use(express.urlencoded({ extended: true }))
 app3.use(login({db, options}))
 app3.use('/', (req, res) => res.send(req.user))
+
+// deactivated basic authentication
+app4.use(login({db, options:{...options, jwtKeyFile:resolve(__dirname, 'jwtKey.txt'), methods: {jwt:{},form:{}}}}))
+app4.use('/', (req, res) => res.send(req.user))
+
+// invalid key file
+app5.use(login({db, options:{...options, jwtKeyFile:resolve(__dirname, 'jwtKey_not_found.txt'), methods: {jwt:{},form:{}}}}))
+app5.use('/', (req, res) => res.send(req.user))
 
 var lastMediaType = 0
 const aMediaType = () => {
@@ -155,6 +164,9 @@ describe('http authentication service', () => {
 				.and.contain('last_name').and.contain('email')
 		)
 	)
+	it('rejects if jwt key file cannot be loaded', () => chai.request(app5).get('/').set('Cookie', cookie.serialize('Jwt', Jwt)).redirects(0).then(
+		res => expect(res).to.have.status(500), error
+	))
 	it('supports (optional) login by Json Web Token (JWT); depends on jwtKeyFile option exists (staticly cached)', () =>
 		chai.request(app2).get('/').set('Cookie', cookie.serialize('Jwt', Jwt)).redirects(0).then(
 			expect200, error
@@ -168,4 +180,7 @@ describe('http authentication service', () => {
 	it('post no data', () => chai.request(app3).post('/').type('form').send().then(expect401))
 	it('post invalid data', () => chai.request(app3).post('/').type('form').send({username: 'test', password: 'test'}).then(expect401))
 	it('post valid data', () => chai.request(app3).post('/').type('form').send({username: 'eve', password: 'test'}).then(expect200))
+
+	it('should fail, because of deactivated method', () => chai.request(app4).get('/').redirects(0).auth('eve', 'test').then(expect401))
+
 })

@@ -31,7 +31,7 @@ exports.default = ({db, options}) => (...args) => {
 		{Jwt} = cookies || {},
     authOptions = {
   		gofer:gofer({
-  			db, req, res, options:{...httpOptions, ...options}
+  			db, req, res, options:{...httpOptions, ...options, methods: authMethods}
   		}),
   		carrier: {
   			getOptions: () => Promise.resolve(
