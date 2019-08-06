@@ -23,5 +23,6 @@
 		"@pubcore/knex-auth": "^1.0.7",
 		"basic-auth": "^2.0.1",
 		"cookie": "^0.4.0"
-	}
+	},
+	"version": "1.0.0"
 }
