@@ -1,6 +1,6 @@
 module.exports = {
     "env": {
-        "shared-node-browser": true,
+        "node": true,
         "mocha": true
     },
     "plugins":[
