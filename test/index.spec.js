@@ -181,6 +181,12 @@ describe('http authentication service', () => {
 	it('post invalid data', () => chai.request(app3).post('/').type('form').send({username: 'test', password: 'test'}).then(expect401))
 	it('post valid data', () => chai.request(app3).post('/').type('form').send({username: 'eve', password: 'test'}).then(expect200))
 
+	it('should not request a basic auth, if post data is send and invalid',
+		() => chai.request(app3).post('/').type('form').send({username: 'test', password: 'test'}).then(
+			(req) => expect(req).not.to.have.header('WWW-Authenticate')
+		)
+	)
+
 	it('should fail, because of deactivated method', () => chai.request(app4).get('/').redirects(0).auth('eve', 'test').then(expect401))
 
 })

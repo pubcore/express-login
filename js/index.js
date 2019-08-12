@@ -30,9 +30,6 @@ exports.default = ({db, options}) => (...args) => {
 		{body, cookies, cookiesByArray} = req,
 		{Jwt} = cookies || {},
     authOptions = {
-  		gofer:gofer({
-  			db, req, res, options:{...httpOptions, ...options, methods: authMethods}
-  		}),
   		carrier: {
   			getOptions: () => Promise.resolve(
   				options.jwtKeyFile && !jwtKey && loadSecret(options.jwtKeyFile)
@@ -62,8 +59,13 @@ exports.default = ({db, options}) => (...args) => {
       if(body && body.username && body.password) {
         authOptions.username = body.username
         authOptions.password = body.password
+				delete authMethods.basicAuth
       }
     }
+
+		authOptions.gofer = gofer({
+			db, req, res, options:{...httpOptions, ...options, methods: authMethods}
+		})
 
 	return authenticate(authOptions).then(user => {
 		if(user){
