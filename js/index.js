@@ -82,7 +82,7 @@ exports.default = ({db, options}) => (...args) => {
 					res.setHeader(
 						'Set-Cookie',
 						cookie.serialize('Jwt', String(Jwt), {
-							httpOnly: false, maxAge: 0, path:'/', secure:true
+							httpOnly: false, path:'/', secure:true, domain: req.get('host')
 						}))
 				}
 				req.user = {
