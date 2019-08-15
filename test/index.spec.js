@@ -54,6 +54,8 @@ app2.use((req, res, next) => {
 	req.cookies = cookie.parse(req.headers.cookie || '')
 	next()
 })
+app2.use(express.json())
+app2.use(express.urlencoded({ extended: true }))
 app2.use(login({db, options:{...options, jwtKeyFile:resolve(__dirname, 'jwtKey.txt')}}))
 app2.use('/', (req, res) => res.send(req.user))
 
@@ -167,6 +169,9 @@ describe('http authentication service', () => {
 	it('rejects if jwt key file cannot be loaded', () => chai.request(app5).get('/').set('Cookie', cookie.serialize('Jwt', Jwt)).redirects(0).then(
 		res => expect(res).to.have.status(500), error
 	))
+	it('should set a valid JWT cookie after valid login', () => chai.request(app2).post('/').type('form').send({username: 'eve', password: 'test'}).then(
+		res => expect(res).to.have.cookie('Jwt'), error
+	))
 	it('supports (optional) login by Json Web Token (JWT); depends on jwtKeyFile option exists (staticly cached)', () =>
 		chai.request(app2).get('/').set('Cookie', cookie.serialize('Jwt', Jwt)).redirects(0).then(
 			expect200, error
@@ -188,5 +193,7 @@ describe('http authentication service', () => {
 	)
 
 	it('should fail, because of deactivated method', () => chai.request(app4).get('/').redirects(0).auth('eve', 'test').then(expect401))
+
+
 
 })
