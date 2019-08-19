@@ -8,6 +8,15 @@ const basicAuth = require('basic-auth'),
 	{readFile} = require('fs'),
 	cookie = require('cookie'),
 	JWT = require('jsonwebtoken'),
+	getJwtDomain = host => {
+		var dp = host.split('.'),
+			n = dp.length,
+			domain = dp[n-2] + '.' + dp[n-1]
+		if(n > 3){
+			domain = dp[n-3] + '.' + domain
+		}
+		return domain
+	},
 	authenticateOptions = { //all time values in [ms]
 		maxTimeWithoutActivity: 1000 * 60 * 60 * 24 * 180,
 		maxLoginAttempts:5,
@@ -82,7 +91,7 @@ exports.default = ({db, options}) => (...args) => {
 					res.setHeader(
 						'Set-Cookie',
 						cookie.serialize('Jwt', String(Jwt), {
-							httpOnly: false, path:'/', secure:true, domain: req.get('host')
+							httpOnly: true, path:'/', secure:true, domain: getJwtDomain(req.get('host')), sameSite: 'lax'
 						}))
 				}
 				req.user = {
