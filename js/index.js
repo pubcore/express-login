@@ -86,7 +86,7 @@ exports.default = ({db, options}) => (...args) => {
 			if(user){
 				var {username, email, first_name, last_name, last_login, oldPwUsed} = user
 				//set jwt cookie
-				if(authMethods.jwt && jwtKey && typeof(Jwt) === 'undefined') {
+				if(authMethods.jwt && jwtKey) {
 					Jwt = JWT.sign({ username, exp: Math.floor(new Date() / 1000) + (360 * 60) }, jwtKey, { algorithm: options.algorithm || 'HS256'})
 					res.setHeader(
 						'Set-Cookie',
