@@ -19,6 +19,7 @@ const app = express(),
 	app3 = express(),
 	app4 = express(),
 	app5 = express(),
+	app6 = express(),
 	options = {
 		publicDeactivatedUri:'/login/deactivated',
 		changePasswordUri:'/login/pwchange',
@@ -72,6 +73,14 @@ app4.use('/', (req, res) => res.send(req.user))
 // invalid key file
 app5.use(login({db, options:{...options, jwtKeyFile:resolve(__dirname, 'jwtKey_not_found.txt'), methods: {jwt:{},form:{}}}}))
 app5.use('/', (req, res) => res.send(req.user))
+
+//JWT support for app6, but with very short login expiry time
+app6.use((req, res, next) => {
+	req.cookies = cookie.parse(req.headers.cookie || '')
+	next()
+})
+app6.use(login({db, options:{...options, maxTimeWithout401: 50, jwtKeyFile:resolve(__dirname, 'jwtKey.txt')}}))
+app6.use('/', (req, res) => res.send(req.user))
 
 var lastMediaType = 0
 const aMediaType = () => {
@@ -194,6 +203,13 @@ describe('http authentication service', () => {
 
 	it('should fail, because of deactivated method', () => chai.request(app4).get('/').redirects(0).auth('eve', 'test').then(expect401))
 
+	it('should fail, because login is expired', () =>
+		chai.request(app6).get('/').set('Cookie', cookie.serialize('Jwt', Jwt)).redirects(0).then(
+			res => expect(res)
+				.redirectTo(options.publicCancelLoginUri)
+				.and.to.have.cookie('back-uri', encodeURIComponent('/'))
+		)
 
+	)
 
 })

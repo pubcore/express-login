@@ -2,13 +2,18 @@
 const {deactivateUser, addLoginFailed, resetLoginFailedCount,
 		updateLastLogin} = require('@pubcore/knex-auth'),
 	http401 = require('../lib/http401').default,
-	cookie = require('cookie')
+	backCookie = require('../lib/createBackCookie').default
+
+const redirectWithCookie = ({req, res, redirectUri}) => {
+	res.setHeader('Set-Cookie',backCookie({uri: req.originalUrl}))
+	req.path !== redirectUri && res.redirect(redirectUri)
+}
 
 exports.default = ({db, res, req, options}) => {
 	var {publicDeactivatedUri, changePasswordUri, publicCancelLoginUri, methods} = options
 
 	return {
-		noCredentials: () => http401({publicCancelLoginUri, res, methods}),
+		noCredentials: () => http401({publicCancelLoginUri, res, req, methods}),
 		notFound: () => http401({publicCancelLoginUri, res, methods}),
 		isDeactivated: () =>
 			req.path !== publicDeactivatedUri && res.redirect(publicDeactivatedUri),
@@ -28,13 +33,7 @@ exports.default = ({db, res, req, options}) => {
 			).then(() => user)
 		},
 		oldPwUsed: user => (user.oldPwUsed = true) && user,
-		passwordExpired: () => {
-			res.setHeader(
-				'Set-Cookie',
-				cookie.serialize('back-uri', String(req.originalUrl), {
-					httpOnly: true, path:'/', secure:true
-				}))
-			req.path !== changePasswordUri && res.redirect(changePasswordUri)
-		}
+		passwordExpired: () => redirectWithCookie({req, res, redirectUri: changePasswordUri}),
+		loginExpired: () => redirectWithCookie({req, res, redirectUri: publicCancelLoginUri})
 	}
 }
