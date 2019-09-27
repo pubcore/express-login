@@ -53,7 +53,11 @@ exports.default = ({db, options}) => (...args) => {
   		lib:{comparePassword}
   	}
 
-    if(authMethods.jwt) {
+    if(
+			authMethods.jwt
+			//ignore jwt, if creds are given in context of form login post request
+			&& (req.method !== 'POST' || !authMethods.form || !body || (!body.username && !body.password))
+		) {
       authOptions.jwt = Jwt
       authOptions.jwtList = (cookiesByArray||{})['Jwt']
     }

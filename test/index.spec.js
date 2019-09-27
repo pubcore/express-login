@@ -175,12 +175,16 @@ describe('http authentication service', () => {
 				.and.contain('last_name').and.contain('email')
 		)
 	)
-	it('rejects if jwt key file cannot be loaded', () => chai.request(app5).get('/').set('Cookie', cookie.serialize('Jwt', Jwt)).redirects(0).then(
-		res => expect(res).to.have.status(500), error
-	))
-	it('should set a valid JWT cookie after valid login', () => chai.request(app2).post('/').type('form').send({username: 'eve', password: 'test'}).then(
-		res => expect(res).to.have.cookie('Jwt'), error
-	))
+	it('rejects if jwt key file cannot be loaded', () =>
+		chai.request(app5).get('/').set('Cookie', cookie.serialize('Jwt', Jwt)).redirects(0).then(
+			res => expect(res).to.have.status(500), error
+		)
+	)
+	it('should set a valid JWT cookie after valid login', () =>
+		chai.request(app2).post('/').type('form').send({username: 'eve', password: 'test'}).then(
+			res => expect(res).to.have.cookie('Jwt'), error
+		)
+	)
 	it('supports (optional) login by Json Web Token (JWT); depends on jwtKeyFile option exists (staticly cached)', () =>
 		chai.request(app2).get('/').set('Cookie', cookie.serialize('Jwt', Jwt)).redirects(0).then(
 			expect200, error
@@ -190,6 +194,13 @@ describe('http authentication service', () => {
 		chai.request(app2).get('/').set('Cookie', cookie.serialize('Jwt', Jwt+'garbleIt')).redirects(0).then(
 			expect401, error
 		)
+	)
+	it('should set/update JWT cookie, if valid credentials are given', () =>
+		chai.request(app2).post('/')
+			.set('Cookie', cookie.serialize('Jwt', 'invalidJwt'))
+			.send({username: 'eve', password: 'test'}).redirects(0).then(
+				res => expect(res).to.have.cookie('Jwt'), error
+			)
 	)
 	it('post no data', () => chai.request(app3).post('/').type('form').send().then(expect401))
 	it('post invalid data', () => chai.request(app3).post('/').type('form').send({username: 'test', password: 'test'}).then(expect401))
