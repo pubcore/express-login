@@ -4,7 +4,9 @@ const {deactivateUser, addLoginFailed, resetLoginFailedCount, updateLastLogin
 	reject = require('../lib/reject'),
 	backCookie = require('../lib/createBackCookie'),
 	url = require('url'),
-	pathOf = uri => url.parse(uri).pathname
+	{normalize} = require('path'),
+	pathEquals = (p1, p2) =>
+		normalize(url.parse(p1).pathname + '/') === normalize(url.parse(p2).pathname + '/')
 
 const redirectWithCookie = ({req, res, redirectUri}) => {
 	res.setHeader('Set-Cookie', backCookie({uri: req.originalUrl}))
@@ -18,7 +20,7 @@ module.exports = ({db, res, req, options}) => {
 		noCredentials: () => reject({publicCancelLoginUri, res, req, method, code:'NO_CREDS'}),
 		notFound: () => reject({publicCancelLoginUri, res, method, code:'USER_NOT_FOUND'}),
 		isDeactivated: () =>
-			req.path !== pathOf(publicDeactivatedUri) && res.redirect(publicDeactivatedUri),
+			!pathEquals(req.path, publicDeactivatedUri) && res.redirect(publicDeactivatedUri),
 		toDeactivate: async ({username}) => {
 			await deactivateUser(db, {username})
 			res.redirect(publicDeactivatedUri)
@@ -36,14 +38,14 @@ module.exports = ({db, res, req, options}) => {
 		},
 		oldPwUsed: user => (user.oldPwUsed = true) && user,
 		passwordExpired: (user) => {
-			if(req.path === pathOf(changePasswordUri)){
+			if(pathEquals(req.path, changePasswordUri)){
 				return user
 			}else{
 				redirectWithCookie({req, res, redirectUri: changePasswordUri})
 			}
 		},
 		loginExpired: async (user) => {
-			if(req.path === pathOf(publicCancelLoginUri)){
+			if(pathEquals(req.path, publicCancelLoginUri)){
 				var {username} = user
 				await updateLastLogin(db, {username})
 				return user
