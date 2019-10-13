@@ -20,7 +20,7 @@ module.exports = ({db, res, req, options}) => {
 		noCredentials: () => reject({publicCancelLoginUri, res, req, method, code:'NO_CREDS'}),
 		notFound: () => reject({publicCancelLoginUri, res, method, code:'USER_NOT_FOUND'}),
 		isDeactivated: () =>
-			!pathEquals(req.path, publicDeactivatedUri) && res.redirect(publicDeactivatedUri),
+			!pathEquals(req.originalUrl, publicDeactivatedUri) && res.redirect(publicDeactivatedUri),
 		toDeactivate: async ({username}) => {
 			await deactivateUser(db, {username})
 			res.redirect(publicDeactivatedUri)
@@ -38,14 +38,14 @@ module.exports = ({db, res, req, options}) => {
 		},
 		oldPwUsed: user => (user.oldPwUsed = true) && user,
 		passwordExpired: (user) => {
-			if(pathEquals(req.path, changePasswordUri)){
+			if(pathEquals(req.originalUrl, changePasswordUri)){
 				return user
 			}else{
 				redirectWithCookie({req, res, redirectUri: changePasswordUri})
 			}
 		},
 		loginExpired: async (user) => {
-			if(pathEquals(req.path, publicCancelLoginUri)){
+			if(pathEquals(req.originalUrl, publicCancelLoginUri)){
 				var {username} = user
 				await updateLastLogin(db, {username})
 				return user
