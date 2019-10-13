@@ -1,39 +1,55 @@
 'use strict'
-const {deactivateUser, addLoginFailed, resetLoginFailedCount,
-		updateLastLogin} = require('@pubcore/knex-auth'),
-	http401 = require('../lib/http401').default,
-	backCookie = require('../lib/createBackCookie').default
+const {deactivateUser, addLoginFailed, resetLoginFailedCount, updateLastLogin
+	} = require('@pubcore/knex-auth'),
+	reject = require('../lib/reject'),
+	backCookie = require('../lib/createBackCookie'),
+	url = require('url'),
+	pathOf = uri => url.parse(uri).pathname
 
 const redirectWithCookie = ({req, res, redirectUri}) => {
-	res.setHeader('Set-Cookie',backCookie({uri: req.originalUrl}))
-	req.path !== redirectUri && res.redirect(redirectUri)
+	res.setHeader('Set-Cookie', backCookie({uri: req.originalUrl}))
+	res.redirect(redirectUri)
 }
 
-exports.default = ({db, res, req, options}) => {
-	var {publicDeactivatedUri, changePasswordUri, publicCancelLoginUri, methods} = options
+module.exports = ({db, res, req, options}) => {
+	var {publicDeactivatedUri, changePasswordUri, publicCancelLoginUri, method} = options
 
 	return {
-		noCredentials: () => http401({publicCancelLoginUri, res, req, methods}),
-		notFound: () => http401({publicCancelLoginUri, res, methods}),
+		noCredentials: () => reject({publicCancelLoginUri, res, req, method, code:'NO_CREDS'}),
+		notFound: () => reject({publicCancelLoginUri, res, method, code:'USER_NOT_FOUND'}),
 		isDeactivated: () =>
-			req.path !== publicDeactivatedUri && res.redirect(publicDeactivatedUri),
-		toDeactivate: ({username}) => deactivateUser(db, {username}).then(
-			() => res.redirect(publicDeactivatedUri)
-		),
-		invalidWebToken: () => http401({publicCancelLoginUri, res, methods}),
-		invalidPassword: ({username}) => addLoginFailed(db, {username}).then(
-			() => http401({publicCancelLoginUri, res, methods})
-		),
-		authenticated: (user, isTimeToUpdate) => {
+			req.path !== pathOf(publicDeactivatedUri) && res.redirect(publicDeactivatedUri),
+		toDeactivate: async ({username}) => {
+			await deactivateUser(db, {username})
+			res.redirect(publicDeactivatedUri)
+		},
+		invalidWebToken: () => reject({publicCancelLoginUri, res, method, code:'INVALID_JWT'}),
+		invalidPassword: async ({username}) => {
+			await addLoginFailed(db, {username})
+			reject({publicCancelLoginUri, res, method, code:'INVALID_PW'})
+		},
+		authenticated: async (user, isTimeToUpdate) => {
 			var {login_failed_count, username} = user
-			return Promise.resolve(
-				login_failed_count > 0 && resetLoginFailedCount(db, {username})
-			).then(
-				() => isTimeToUpdate && updateLastLogin(db, {username})
-			).then(() => user)
+			if(login_failed_count > 0) await resetLoginFailedCount(db, {username})
+			if(isTimeToUpdate) await updateLastLogin(db, {username})
+			return user
 		},
 		oldPwUsed: user => (user.oldPwUsed = true) && user,
-		passwordExpired: () => redirectWithCookie({req, res, redirectUri: changePasswordUri}),
-		loginExpired: () => redirectWithCookie({req, res, redirectUri: publicCancelLoginUri})
+		passwordExpired: (user) => {
+			if(req.path === pathOf(changePasswordUri)){
+				return user
+			}else{
+				redirectWithCookie({req, res, redirectUri: changePasswordUri})
+			}
+		},
+		loginExpired: async (user) => {
+			if(req.path === pathOf(publicCancelLoginUri)){
+				var {username} = user
+				await updateLastLogin(db, {username})
+				return user
+			}else{
+				redirectWithCookie({req, res, redirectUri: publicCancelLoginUri})
+			}
+		}
 	}
 }

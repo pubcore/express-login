@@ -2,7 +2,7 @@
 
 const cookie = require('cookie')
 
-exports.default = ({uri}) => cookie.serialize(
+module.exports = ({uri}) => cookie.serialize(
 	'back-uri',
 	String(uri),
 	{
