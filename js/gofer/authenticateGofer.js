@@ -14,7 +14,18 @@ const redirectWithCookie = ({req, res, redirectUri}) => {
 }
 
 module.exports = ({db, res, req, options}) => {
-	var {publicDeactivatedUri, changePasswordUri, publicCancelLoginUri, method} = options
+	var {publicDeactivatedUri, changePasswordUri, publicCancelLoginUri, method} = options,
+		loginExpired
+	if(method === 'basicAuth'){
+		loginExpired = async (user) => {
+			if(pathEquals(req.originalUrl, publicCancelLoginUri)){
+				var {username} = user
+				await updateLastLogin(db, {username})
+			}else{
+				reject({publicCancelLoginUri, res, method, code:'LOGIN_EXPIRED'})
+			}
+		}
+	}
 
 	return {
 		noCredentials: () => reject({publicCancelLoginUri, res, req, method, code:'NO_CREDS'}),
@@ -44,13 +55,6 @@ module.exports = ({db, res, req, options}) => {
 				redirectWithCookie({req, res, redirectUri: changePasswordUri})
 			}
 		},
-		loginExpired: method === 'basicAuth' && async (user) => {
-			if(pathEquals(req.originalUrl, publicCancelLoginUri)){
-				var {username} = user
-				await updateLastLogin(db, {username})
-			}else{
-				reject({publicCancelLoginUri, res, method, code:'LOGIN_EXPIRED'})
-			}
-		}
+		loginExpired
 	}
 }
