@@ -9,7 +9,7 @@ const {deactivateUser, addLoginFailed, resetLoginFailedCount, updateLastLogin
 		normalize(url.parse(p1).pathname + '/') === normalize(url.parse(p2).pathname + '/')
 
 const redirectWithCookie = ({req, res, redirectUri}) => {
-	res.setHeader('Set-Cookie', backCookie({uri: req.originalUrl}))
+	res.setHeader('Set-Cookie', `${backCookie({uri: req.originalUrl})}; Jwt: deleted;`)
 	res.redirect(redirectUri)
 }
 
@@ -25,7 +25,7 @@ module.exports = ({db, res, req, options}) => {
 			await deactivateUser(db, {username})
 			res.redirect(publicDeactivatedUri)
 		},
-		invalidWebToken: () => reject({publicCancelLoginUri, res, method, code:'INVALID_JWT'}),
+		invalidWebToken: () => redirectWithCookie({req, res, redirectUri: publicCancelLoginUri}),
 		invalidPassword: async ({username}) => {
 			await addLoginFailed(db, {username})
 			reject({publicCancelLoginUri, res, method, code:'INVALID_PW'})
@@ -44,13 +44,12 @@ module.exports = ({db, res, req, options}) => {
 				redirectWithCookie({req, res, redirectUri: changePasswordUri})
 			}
 		},
-		loginExpired: async (user) => {
+		loginExpired: method === 'basicAuth' && async (user) => {
 			if(pathEquals(req.originalUrl, publicCancelLoginUri)){
 				var {username} = user
 				await updateLastLogin(db, {username})
-				return user
 			}else{
-				redirectWithCookie({req, res, redirectUri: publicCancelLoginUri})
+				reject({publicCancelLoginUri, res, method, code:'LOGIN_EXPIRED'})
 			}
 		}
 	}

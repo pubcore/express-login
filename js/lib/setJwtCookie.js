@@ -4,9 +4,15 @@ const cookie = require('cookie'),
 	getJwtDomain = require('./jwtDomain')
 
 module.exports = ({jwtKey, jwtAlgorithm, maxTimeWithout401}, req, res) => {
+	if(maxTimeWithout401 == undefined){
+		throw new TypeError('Undefined config key: maxTimeWithout401')
+	}
 	var {user} = req,
 		{username} = user,
-		exp = Math.floor((new Date() + +maxTimeWithout401) / 1000)
+		exp = Math.floor( (Date.now() + +maxTimeWithout401)/1000 )
+	if(!Number.isInteger(exp) || +maxTimeWithout401 <= 0){
+		throw new TypeError('Illegal config value for: maxTimeWithout401')
+	}
 	//set jwt cookie
 	var Jwt = JWT.sign(
 		{username, exp},

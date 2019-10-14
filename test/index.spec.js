@@ -9,7 +9,7 @@ const chai = require('chai'),
 	defaultMap = require('./userDefaultMap').default,
 	{resolve} = require('path'),
 	cookie = require('cookie'),
-	JWT = require('jsonwebtoken'),
+	{sign} = require('jsonwebtoken'),
 	cookieParseSupportDuplicates = require('./cookieParseRepeated').parse
 
 chai.use(chaiHttp)
@@ -44,7 +44,8 @@ const app = express(),
 	}}),
 	db = {knex, table},
 	error = err => {throw err},
-	Jwt = JWT.sign({ username: 'eve' }, 'somestring')
+	Jwt = sign({ username: 'eve' }, 'somestring'),
+	JwtExpired = sign({username: 'eve', exp:1000}, 'somestring')
 
 app.use(login({db, options}))
 app.use('/', (req, res) => res.send(req.user))
@@ -80,7 +81,7 @@ app6.use((req, res, next) => {
 	req.cookies = cookie.parse(req.headers.cookie || '')
 	next()
 })
-app6.use(login({db, options:{...options, maxTimeWithout401: 50, jwtKeyFile:resolve(__dirname, 'jwtKey.txt')}}))
+app6.use(login({db, options:{...options, maxTimeWithout401: 1, jwtKeyFile:resolve(__dirname, 'jwtKey.txt')}}))
 app6.use('/', (req, res) => res.send(req.user))
 
 app7.use((req, res, next) => {
@@ -193,18 +194,26 @@ describe('http authentication service based on @pubcore/authentication flow', ()
 	)
 	it('should fail, because of deactivated method', () => chai.request(app4).get('/').redirects(0).auth('eve', 'test').then(expectReject()))
 	it('force reject/login based on configured maxTimeWithout401 (session expiry)', () =>
-		chai.request(app6).get('/').set('Cookie', cookie.serialize('Jwt', Jwt))
-			.redirects(0).then(
-				res => expect(res).redirectTo(options.publicCancelLoginUri)
-					.and.to.have.cookie('back-uri', encodeURIComponent('/'))
-			)
+		chai.request(app6).get('/').set('Cookie', cookie.serialize('Jwt', JwtExpired)).redirects(0).then(
+			res => expect(res).redirectTo(options.publicCancelLoginUri)
+				.and.to.have.cookie('back-uri', encodeURIComponent('/'))
+		)
+	)
+	it('force reject based on configured maxTimeWithout401 (session expiry)', () =>
+		chai.request(app6).get('/').auth('eve', 'test').redirects(0).then(
+			() => expectReject(401), error
+		)
+	)
+	it('does not reject on expiry for basicAuth, if we are on publicCancelLoginUri page', () =>
+		chai.request(app6).get(options.publicCancelLoginUri).auth('eve', 'test').redirects(0).then(
+			res => expect(res).to.have.status(200), error
+		)
 	)
 	it('expired login is updated, if login-request\'s URI equals "publicCancelLoginUri"', () =>
 		chai.request(app6).post(options.publicCancelLoginUri).type('form').send({username: 'eve', password: 'test'}).then(
 			res => {
 				expect(res).to.have.status(200)
 				expect(res.text).to.not.contain(options.publicCancelLoginUri)
-				expect(res.text).to.contain('last_name').and.contain('um@xy.com')
 			}
 		)
 	)
@@ -224,6 +233,16 @@ describe('http authentication service based on @pubcore/authentication flow', ()
 				res => expect(res).to.have.cookie('Jwt'), error
 			)
 		)
+		it('must not set a JWT cookie for invalid login', () =>
+			chai.request(app2).post(options.publicCancelLoginUri).type('form').send({username: 'eve', password: 'wrong'}).then(
+				res => expect(res).to.not.have.cookie('Jwt'), error
+			)
+		)
+		it('must not set a JWT cookie for invalid and expired login ', () =>
+			chai.request(app6).post(options.publicCancelLoginUri).type('form').send({username: 'eve', password: 'wrong'}).then(
+				res => expect(res).to.not.have.cookie('Jwt'), error
+			)
+		)
 		it('support login, if two JWT cookies given with same name', async () => {
 			await chai.request(app2).get('/').set('Cookie', `Jwt=foo; Jwt=${Jwt}`).redirects(0).then(
 				expect200, error
@@ -232,9 +251,9 @@ describe('http authentication service based on @pubcore/authentication flow', ()
 				expect200, error
 			)
 		})
-		it('rejects, if JWT is invalid', () =>
+		it('redirect to login, if JWT is invalid', () =>
 			chai.request(app2).get('/').set('Cookie', cookie.serialize('Jwt', Jwt+'garbleIt')).redirects(0).then(
-				expectReject(), error
+				res => expect(res).redirectTo(options.publicCancelLoginUri), error
 			)
 		)
 		it('should set/update JWT cookie, if valid credentials are given', () =>
