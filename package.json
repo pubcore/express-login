@@ -9,18 +9,18 @@
 	"main": "js/index.js",
 	"license": "MIT",
 	"devDependencies": {
-		"@pubcore/knex-create-test-db": "^1.1.4",
+		"@pubcore/knex-create-test-db": "^1.1.5",
 		"chai": "^4.2.0",
 		"chai-http": "^4.3.0",
 		"eslint": "^6.5.1",
-		"eslint-plugin-mocha": "^6.1.1",
+		"eslint-plugin-mocha": "^6.2.0",
 		"express": "^4.17.1",
-		"mocha": "^6.2.1",
+		"mocha": "^6.2.2",
 		"nyc": "^14.1.1"
 	},
 	"dependencies": {
 		"@pubcore/authentication": "^1.2.2",
-		"@pubcore/knex-auth": "^1.0.8",
+		"@pubcore/knex-auth": "^1.0.9",
 		"basic-auth": "^2.0.1",
 		"cookie": "^0.4.0",
 		"jsonwebtoken": "^8.5.1"
