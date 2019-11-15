@@ -17,7 +17,7 @@ module.exports = ({jwtKey, jwtAlgorithm, maxTimeWithout401}, req, res) => {
 	var Jwt = JWT.sign(
 		{username, exp},
 		jwtKey,
-		{algorithm: jwtAlgorithm || 'HS256'}
+		{algorithm: jwtAlgorithm || 'HS256', noTimestamp:true}
 	)
 	res.setHeader(
 		'Set-Cookie',
