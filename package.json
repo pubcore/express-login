@@ -9,7 +9,7 @@
 	"main": "js/index.js",
 	"license": "MIT",
 	"devDependencies": {
-		"@pubcore/knex-create-test-db": "^1.1.10",
+		"@pubcore/knex-create-test-db": "^1.1.12",
 		"chai": "^4.2.0",
 		"chai-http": "^4.3.0",
 		"eslint": "^6.8.0",
@@ -20,7 +20,7 @@
 	},
 	"dependencies": {
 		"@pubcore/authentication": "^1.2.4",
-		"@pubcore/knex-auth": "^1.0.10",
+		"@pubcore/knex-auth": "^1.0.11",
 		"basic-auth": "^2.0.1",
 		"cookie": "^0.4.1",
 		"jsonwebtoken": "^8.5.1"
